@@ -79,7 +79,7 @@ app.get("/readyz", (req, res) => {
 app.get("/", (req, res) => {
   const randomDelay = Math.random() * 500;
   setTimeout(() => {
-    res.send("Hello from Kubernetes 🚀!");
+    res.send("Hello from Kubernetes testing 🚀!");
   }, randomDelay);
 });
 
