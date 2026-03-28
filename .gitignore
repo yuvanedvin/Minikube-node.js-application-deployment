@@ -13,3 +13,4 @@ k8s/secret/secret.yaml
 
 # Logs
 *.log
+k8s/secret/secret.yaml
