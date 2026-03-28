@@ -10,6 +10,20 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/monitoring-app
 
+- name: Extract Docker metadata
+  id: meta
+  uses: docker/metadata-action@v5
+  with:
+    images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+    # Add this:
+    flavor: |
+      latest=true
+    tags: |
+      type=sha,prefix=,suffix=,format=short
+      type=raw,value=latest,enable={{is_default_branch}}
+
+
+
 jobs:
 
   # ─── Job 1: Test ─────────────────────────────────────────────────────────────
@@ -112,6 +126,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     if: github.ref == 'refs/heads/master'
+    permissions:
+      security-events: write
+      contents: read
     steps:
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
