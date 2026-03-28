@@ -1,0 +1,37 @@
+# ─── ServiceAccount ──────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: monitoring-app-sa
+  namespace: monitoring-app
+  labels:
+    app: monitoring-app
+automountServiceAccountToken: false   # Don't auto-mount unless needed
+
+---
+# ─── Role: what this app is allowed to do ────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: monitoring-app-role
+  namespace: monitoring-app
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]   # Read-only access to ConfigMaps
+
+---
+# ─── RoleBinding: attach role to service account ─────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: monitoring-app-rolebinding
+  namespace: monitoring-app
+subjects:
+  - kind: ServiceAccount
+    name: monitoring-app-sa
+    namespace: monitoring-app
+roleRef:
+  kind: Role
+  apiGroupName: rbac.authorization.k8s.io
+  name: monitoring-app-role

@@ -1,0 +1,72 @@
+# Prerequisites:
+#   minikube addons enable ingress
+#   minikube addons enable ingress-dns
+#   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+
+# ─── ClusterIssuer: Let's Encrypt (use staging first to avoid rate limits) ───
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: your-email@example.com          # Replace with your email
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+
+---
+# ─── Production ClusterIssuer (use after staging works) ──────────────────────
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: your-email@example.com          # Replace with your email
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+
+---
+# ─── Ingress resource ─────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monitoring-app-ingress
+  namespace: monitoring-app
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"          # Max 100 req/s per IP
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+    - hosts:
+        - monitoring-app.example.com    # Replace with your domain
+      secretName: monitoring-app-tls
+
+  rules:
+    - host: monitoring-app.example.com  # Replace with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: monitoring-app
+                port:
+                  name: http
+
+# ─── For Minikube local testing (no TLS, use minikube ip as host) ─────────────
+# Add to /etc/hosts: <minikube ip> monitoring-app.local
+# Then use host: monitoring-app.local and remove tls section above
