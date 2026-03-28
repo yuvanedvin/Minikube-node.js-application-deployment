@@ -1,0 +1,147 @@
+# ─── ServiceMonitor ───────────────────────────────────────────────────────────
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: monitoring-app
+  namespace: monitoring-app
+  labels:
+    release: monitoring         # Must match kube-prometheus-stack label
+spec:
+  selector:
+    matchLabels:
+      app: monitoring-app
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+
+---
+# ─── PrometheusRule: Alerting Rules ──────────────────────────────────────────
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: monitoring-app-alerts
+  namespace: monitoring-app
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: monitoring-app.rules
+      rules:
+
+        # Alert: Pod is down
+        - alert: AppPodDown
+          expr: up{job="monitoring-app"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "monitoring-app pod is down"
+            description: "Pod {{ $labels.pod }} has been down for more than 1 minute."
+
+        # Alert: High error rate (5xx)
+        - alert: HighErrorRate
+          expr: |
+            rate(http_requests_total{status=~"5.."}[5m])
+            /
+            rate(http_requests_total[5m]) > 0.05
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High HTTP 5xx error rate"
+            description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+        # Alert: High request latency
+        - alert: HighLatency
+          expr: |
+            histogram_quantile(0.95,
+              rate(http_request_duration_seconds_bucket[5m])
+            ) > 1.0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High p95 request latency"
+            description: "p95 latency is {{ $value }}s (threshold: 1s)."
+
+        # Alert: High memory usage
+        - alert: HighMemoryUsage
+          expr: |
+            container_memory_usage_bytes{container="monitoring-app"}
+            / container_spec_memory_limit_bytes{container="monitoring-app"} > 0.85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage"
+            description: "Memory usage is above 85% of limit."
+
+        # Alert: Deployment has no available replicas
+        - alert: DeploymentUnavailable
+          expr: kube_deployment_status_replicas_available{deployment="monitoring-app"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Deployment has no available replicas"
+            description: "monitoring-app deployment has 0 available replicas."
+
+---
+# ─── Grafana Dashboard ConfigMap ──────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-app-dashboard
+  namespace: monitoring-app
+  labels:
+    grafana_dashboard: "1"    # Grafana sidecar picks this up automatically
+data:
+  monitoring-app.json: |
+    {
+      "title": "Monitoring App Dashboard",
+      "uid": "monitoring-app",
+      "panels": [
+        {
+          "title": "Request Rate",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "rate(http_requests_total[5m])",
+              "legendFormat": "{{method}} {{route}} {{status}}"
+            }
+          ]
+        },
+        {
+          "title": "p95 Latency",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "p95 latency"
+            }
+          ]
+        },
+        {
+          "title": "Error Rate",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "rate(http_requests_total{status=~'5..'}[5m]) / rate(http_requests_total[5m])",
+              "legendFormat": "Error Rate"
+            }
+          ]
+        },
+        {
+          "title": "Active Requests",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "http_active_requests",
+              "legendFormat": "Active"
+            }
+          ]
+        }
+      ]
+    }

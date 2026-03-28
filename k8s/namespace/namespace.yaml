@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring-app
+  labels:
+    name: monitoring-app
+    environment: production

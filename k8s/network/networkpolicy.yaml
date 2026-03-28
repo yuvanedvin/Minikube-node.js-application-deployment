@@ -1,0 +1,75 @@
+# ─── Default deny all ingress and egress ─────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: monitoring-app
+spec:
+  podSelector: {}       # Apply to all pods in namespace
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# ─── Allow ingress from Ingress controller only ───────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: monitoring-app
+spec:
+  podSelector:
+    matchLabels:
+      app: monitoring-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+
+---
+# ─── Allow Prometheus to scrape metrics ───────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: monitoring-app
+spec:
+  podSelector:
+    matchLabels:
+      app: monitoring-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring    # Prometheus namespace
+      ports:
+        - protocol: TCP
+          port: 3000
+
+---
+# ─── Allow DNS egress (required for all pods) ────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: monitoring-app
+spec:
+  podSelector:
+    matchLabels:
+      app: monitoring-app
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
