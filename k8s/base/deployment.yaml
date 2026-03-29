@@ -62,11 +62,7 @@ spec:
       containers:
         - name: monitoring-app
           image: monitoring-app:1.0         # Replace with registry URL in prod
-<<<<<<< HEAD
-          imagePullPolicy: IfNotPresent     # Use Always when pulling from registry
-=======
           imagePullPolicy: Always     # Use Always when pulling from registry
->>>>>>> c32cead7928f8f8812d9586996bdf79cd46c5503
 
           ports:
             - containerPort: 3000
