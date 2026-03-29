@@ -1,0 +1,16 @@
+# Dependencies
+app/node_modules/
+
+# Environment files - NEVER commit these
+.env
+.env.*
+
+# Secrets - NEVER commit real values
+k8s/secret/secret.yaml
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
+k8s/secret/secret.yaml

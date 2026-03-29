@@ -79,7 +79,11 @@ app.get("/readyz", (req, res) => {
 app.get("/", (req, res) => {
   const randomDelay = Math.random() * 500;
   setTimeout(() => {
+<<<<<<< HEAD
     res.send("Hello from Kubernetes production-ready app 🚀");
+=======
+    res.send("Hello from Kubernetes testing 🚀!");
+>>>>>>> c32cead7928f8f8812d9586996bdf79cd46c5503
   }, randomDelay);
 });
 
@@ -136,3 +140,7 @@ process.on("unhandledRejection", (reason) => {
   log.error("Unhandled rejection", { reason: String(reason) });
   process.exit(1);
 });
+<<<<<<< HEAD
+=======
+// test ci/cd
+>>>>>>> c32cead7928f8f8812d9586996bdf79cd46c5503

@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+<<<<<<< HEAD
     "test": "jest --coverage",
+=======
+    "test": "jest --coverage --passWithNoTests",
+>>>>>>> c32cead7928f8f8812d9586996bdf79cd46c5503
     "lint": "eslint ."
   },
   "dependencies": {
